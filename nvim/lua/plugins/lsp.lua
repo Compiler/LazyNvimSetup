@@ -7,14 +7,17 @@ return {
     "neovim/nvim-lspconfig",
     config = function()
         local group = vim.api.nvim_create_augroup("UserLspGd", { clear = true })
+	print("Looking for lsp at home.")
+	print(vim.fn.expand("$HOME"))
+	print(vim.fn.expand("$HOME") .. "\\qmlls.exe")
 
 	vim.api.nvim_create_autocmd("LspAttach", { group = group, callback = function(args)
           local client = vim.lsp.get_client_by_id(args.data.client_id)
-          if client and client.name == "clangd" then
             vim.keymap.set("n", "<space>gd", vim.lsp.buf.definition, {
               buffer = args.buf,
               desc = "clangd: goto definition",
             })
+          if client and client.name == "clangd" then
 
 	    vim.keymap.set("n","<leader>fo", function()
 		vim.lsp.buf_request(0,"textDocument/switchSourceHeader",{uri=vim.uri_from_bufnr(0)},function(_,r)
@@ -25,8 +28,27 @@ return {
           end
         end,
       })
+	vim.lsp.config.qmlls = {
+          --cmd = {vim.fn.expand("$HOME") .. "\\qmlls.exe" },
+          cmd = {vim.fn.expand("$HOME") .. "/Code/qt5/build/qtbase/bin/qmlls.exe" },
+          filetypes = { "qml" },
+          root_dir = vim.fs.dirname(
+            vim.fs.find({ "CMakeLists.txt", "qmlproject", ".git" }, { upward = true })[1]
+          ),
+          settings = {
+            qml = {
+              formatting = { enable = true },
+              lint = { enable = true },
+              importPaths = {
+                "C:/Qt/6.7.2/msvc2019_64/qml",
+                vim.fn.getcwd() .. "/mainapp",
+              },
+            },
+          },
+        }
       vim.lsp.enable({
         "lua_ls",
+	"qmlls",
         "mesonlsp",
       })
     end,
