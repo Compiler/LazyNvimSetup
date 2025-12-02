@@ -9,18 +9,59 @@ vim.opt.clipboard="unnamedplus"
 vim.keymap.set("i", "jf", "<Esc>")
 vim.keymap.set("i", "JF", "<Esc>")
 -- build makefile
-vim.api.nvim_set_keymap('n', '<leader>m', ':wa<CR>:botright split term://make<CR>:resize ' .. math.floor(vim.o.lines / 4) .. '<CR>i', { noremap = true, silent = true })
+--vim.api.nvim_set_keymap('n', '<leader>m', ':wa<CR>:botright split term://make<CR>:resize ' .. math.floor(vim.o.lines / 4) .. '<CR>i', { noremap = true, silent = true })
 
--- kill job
-vim.keymap.set("n", "<leader>q", function()
+local kill_topaz = function()
     vim.fn.jobstart({
         "cmd.exe", "/C",
         'taskkill /IM "Topaz Video.exe" /F /T >nul 2>&1'
     })
-end, {
+end
+
+-- kill
+vim.keymap.set("n", "<leader>q", kill_topaz, {
     noremap = true,
     silent = true,
     desc = "Kill Topaz Video"
+})
+
+-- full build and run
+vim.keymap.set("n", "<leader>m", function()
+    kill_topaz()
+    vim.cmd("wa")
+    vim.cmd("botright split term://make")
+    vim.cmd("resize " .. math.floor(vim.o.lines / 4))
+    vim.cmd("startinsert")
+end, {
+    noremap = true,
+    silent = true,
+    desc = "Kill + Make"
+})
+
+-- run
+vim.keymap.set("n", "<leader>r", function()
+    kill_topaz()
+    vim.cmd("wa")
+    vim.cmd("botright split term://make run")
+    vim.cmd("resize " .. math.floor(vim.o.lines / 4))
+    vim.cmd("startinsert")
+end, {
+    noremap = true,
+    silent = true,
+    desc = "Kill + Make Run"
+})
+
+-- clean
+vim.keymap.set("n", "<leader>c", function()
+    kill_topaz()
+    vim.cmd("wa")
+    vim.cmd("botright split term://make clean")
+    vim.cmd("resize " .. math.floor(vim.o.lines / 4))
+    vim.cmd("startinsert")
+end, {
+    noremap = true,
+    silent = true,
+    desc = "Kill + clean "
 })
 
 
