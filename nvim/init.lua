@@ -18,16 +18,45 @@ local kill_topaz = function()
     })
 end
 
+local close_terminals = function()
+  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    if vim.api.nvim_buf_is_loaded(buf) then
+      local ft = vim.bo[buf].filetype
+      if ft == "" or ft == "unknown" then
+        vim.api.nvim_buf_delete(buf, { force = true })
+      end
+    end
+  end
+end
+
 -- kill
-vim.keymap.set("n", "<leader>q", kill_topaz, {
+vim.keymap.set("n", "<leader>q", function() 
+    kill_topaz()
+    close_terminals() 
+end, {
     noremap = true,
     silent = true,
     desc = "Kill Topaz Video"
 })
 
+vim.keymap.set("t", "<leader>q", function()
+    vim.api.nvim_feedkeys(
+        vim.api.nvim_replace_termcodes("<C-\\><C-n>", true, false, true),
+        "n",
+        false
+    )
+    kill_topaz()
+    close_terminals()
+end, {
+    noremap = true,
+    silent = true,
+    desc = "Close terminals",
+})
+
 -- full build and run
 vim.keymap.set("n", "<leader>m", function()
     kill_topaz()
+    close_terminals()
     vim.cmd("wa")
     vim.cmd("botright split term://make")
     vim.cmd("resize " .. math.floor(vim.o.lines / 4))
@@ -36,6 +65,24 @@ end, {
     noremap = true,
     silent = true,
     desc = "Kill + Make"
+})
+
+vim.keymap.set("t", "<leader>m", function()
+    vim.api.nvim_feedkeys(
+        vim.api.nvim_replace_termcodes("<C-\\><C-n>", true, false, true),
+        "n",
+        false
+    )
+    kill_topaz()
+    close_terminals()
+    vim.cmd("wa")
+    vim.cmd("botright split term://make")
+    vim.cmd("resize " .. math.floor(vim.o.lines / 4))
+    vim.cmd("startinsert")
+end, {
+    noremap = true,
+    silent = true,
+    desc = "Kill + Make "
 })
 
 -- run
@@ -51,19 +98,44 @@ end, {
     desc = "Kill + Make Run"
 })
 
--- clean
-vim.keymap.set("n", "<leader>c", function()
+vim.keymap.set("t", "<leader>r", function()
+    -- optional: go to normal mode after closing
+    vim.api.nvim_feedkeys(
+        vim.api.nvim_replace_termcodes("<C-\\><C-n>", true, false, true),
+        "n",
+        false
+    )
     kill_topaz()
     vim.cmd("wa")
-    vim.cmd("botright split term://make clean")
+    vim.cmd("botright split term://make run")
     vim.cmd("resize " .. math.floor(vim.o.lines / 4))
     vim.cmd("startinsert")
 end, {
     noremap = true,
     silent = true,
-    desc = "Kill + clean "
+    desc = "Kill + Make run"
 })
 
+vim.keymap.set("n", "<leader>c", function()
+    close_terminals()
+end, {
+    noremap = true,
+    silent = true,
+    desc = "Close terminals"
+})
+
+vim.keymap.set("t", "<leader>c", function()
+    vim.api.nvim_feedkeys(
+        vim.api.nvim_replace_termcodes("<C-\\><C-n>", true, false, true),
+        "n",
+        false
+    )
+    close_terminals()
+end, {
+    noremap = true,
+    silent = true,
+    desc = "Close terminals",
+})
 
 -- show what we yank
 vim.api.nvim_create_autocmd('TextYankPost', {

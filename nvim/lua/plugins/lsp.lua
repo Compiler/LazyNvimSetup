@@ -38,7 +38,7 @@ return {
           settings = {
             qml = {
               formatting = { enable = true },
-              lint = { enable = true },
+              lint = { enable = true,  warnings = false, messages = false },
               importPaths = {
                 "C:/Qt/6.7.2/msvc2019_64/qml",
                 vim.fn.getcwd() .. "/mainapp",
