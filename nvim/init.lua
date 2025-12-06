@@ -8,9 +8,9 @@ vim.opt.clipboard="unnamedplus"
 -- remap esc
 vim.keymap.set("i", "jf", "<Esc>")
 vim.keymap.set("i", "JF", "<Esc>")
--- build makefile
---vim.api.nvim_set_keymap('n', '<leader>m', ':wa<CR>:botright split term://make<CR>:resize ' .. math.floor(vim.o.lines / 4) .. '<CR>i', { noremap = true, silent = true })
 
+vim.keymap.set("i", "jk", "<Esc>")
+vim.keymap.set("i", "jk", "<Esc>")
 local kill_topaz = function()
     vim.fn.jobstart({
         "cmd.exe", "/C",
@@ -88,6 +88,7 @@ end, {
 -- run
 vim.keymap.set("n", "<leader>r", function()
     kill_topaz()
+    close_terminals()
     vim.cmd("wa")
     vim.cmd("botright split term://make run")
     vim.cmd("resize " .. math.floor(vim.o.lines / 4))
@@ -106,6 +107,7 @@ vim.keymap.set("t", "<leader>r", function()
         false
     )
     kill_topaz()
+    close_terminals()
     vim.cmd("wa")
     vim.cmd("botright split term://make run")
     vim.cmd("resize " .. math.floor(vim.o.lines / 4))
