@@ -7,6 +7,7 @@ return {
                 qrc_root = "C:/Users/ljuek/Work_Code/VideoEnhance/videoenhanceai/mainapp",
                 filetypes = { "", "log", "txt" },
                 hl_group = "Underlined",
+                poll_interval = 300,
             }
 
             local patterns = {
@@ -14,6 +15,10 @@ return {
                 { pattern = "(qrc:/[^%s:]+):(%d+)", type = "qrc" },
                 { pattern = "(/[^%s:]+):(%d+)", type = "unix" },
             }
+
+            local timers = {}
+            local buf_state = {}
+            local ns_id = vim.api.nvim_create_namespace("loglinks")
 
             local function resolve_path(path, path_type)
                 if path_type == "qrc" then
@@ -48,8 +53,6 @@ return {
                 return nil, nil
             end
 
-            -- can modify this if u need, i do this because i always spawn my logs into a dedicated buffer
-            -- so i want it to open in any other buffer
             local function find_target_window()
                 local current_win = vim.api.nvim_get_current_win()
                 local windows = vim.api.nvim_list_wins()
@@ -96,13 +99,15 @@ return {
                 end
             end
 
-            local ns_id = vim.api.nvim_create_namespace("loglinks")
-
             local function highlight_buffer(bufnr)
                 bufnr = bufnr or vim.api.nvim_get_current_buf()
+                if not vim.api.nvim_buf_is_valid(bufnr) then return end
+
                 vim.api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
 
-                local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+                local ok, lines = pcall(vim.api.nvim_buf_get_lines, bufnr, 0, -1, false)
+                if not ok then return end
+
                 for lnum, line in ipairs(lines) do
                     for _, pat in ipairs(patterns) do
                         local search_start = 1
@@ -110,7 +115,7 @@ return {
                             local match_start, match_end = line:find(pat.pattern, search_start)
                             if not match_start then break end
 
-                            vim.api.nvim_buf_add_highlight(
+                            pcall(vim.api.nvim_buf_add_highlight,
                                 bufnr,
                                 ns_id,
                                 config.hl_group,
@@ -125,6 +130,69 @@ return {
                 end
             end
 
+            local function buf_changed(bufnr)
+                if not vim.api.nvim_buf_is_valid(bufnr) then return false end
+
+                local ok, line_count = pcall(vim.api.nvim_buf_line_count, bufnr)
+                if not ok then return false end
+
+                local ok2, last_line = pcall(vim.api.nvim_buf_get_lines, bufnr, -2, -1, false)
+                local last = ok2 and last_line[1] or ""
+
+                local prev = buf_state[bufnr]
+                local changed = not prev or prev.line_count ~= line_count or prev.last_line ~= last
+
+                buf_state[bufnr] = { line_count = line_count, last_line = last }
+                return changed
+            end
+
+            local function start_refresh_timer(bufnr)
+                local old_timer = timers[bufnr]
+                if old_timer then
+                    timers[bufnr] = nil
+                    pcall(function()
+                        old_timer:stop()
+                        old_timer:close()
+                    end)
+                end
+
+                local timer = vim.uv.new_timer()
+                timers[bufnr] = timer
+
+                highlight_buffer(bufnr)
+                buf_state[bufnr] = nil
+
+                timer:start(config.poll_interval, config.poll_interval, vim.schedule_wrap(function()
+                    if timers[bufnr] ~= timer then return end
+
+                    if not vim.api.nvim_buf_is_valid(bufnr) then
+                        timers[bufnr] = nil
+                        pcall(function()
+                            timer:stop()
+                            timer:close()
+                        end)
+                        buf_state[bufnr] = nil
+                        return
+                    end
+
+                    if buf_changed(bufnr) then
+                        highlight_buffer(bufnr)
+                    end
+                end))
+            end
+
+            local function stop_refresh_timer(bufnr)
+                local timer = timers[bufnr]
+                if timer then
+                    timers[bufnr] = nil
+                    pcall(function()
+                        timer:stop()
+                        timer:close()
+                    end)
+                end
+                buf_state[bufnr] = nil
+            end
+
             local function setup_buffer_keymaps(bufnr)
                 vim.keymap.set("n", "<leader>gd", goto_file_ref, {
                     buffer = bufnr,
@@ -134,6 +202,16 @@ return {
                     buffer = bufnr,
                     desc = "Go to file:line reference",
                 })
+            end
+
+            local function is_log_buffer(bufnr)
+                local ft = vim.bo[bufnr].filetype
+                local buftype = vim.bo[bufnr].buftype
+                if buftype == "terminal" then return true end
+                for _, allowed_ft in ipairs(config.filetypes) do
+                    if ft == allowed_ft then return true end
+                end
+                return false
             end
 
             vim.api.nvim_create_user_command("LogLinksGoto", goto_file_ref, {
@@ -151,33 +229,40 @@ return {
 
             local group = vim.api.nvim_create_augroup("LogLinks", { clear = true })
 
+            vim.api.nvim_create_autocmd("TermOpen", {
+                group = group,
+                callback = function(args)
+                    setup_buffer_keymaps(args.buf)
+                    start_refresh_timer(args.buf)
+                end,
+            })
+
             vim.api.nvim_create_autocmd({ "BufEnter", "BufWinEnter" }, {
                 group = group,
                 callback = function(args)
-                    local ft = vim.bo[args.buf].filetype
-                    for _, allowed_ft in ipairs(config.filetypes) do
-                        if ft == allowed_ft then
-                            setup_buffer_keymaps(args.buf)
-                            vim.defer_fn(function()
-                                if vim.api.nvim_buf_is_valid(args.buf) then
-                                    highlight_buffer(args.buf)
-                                end
-                            end, 100)
-                            break
+                    if is_log_buffer(args.buf) then
+                        setup_buffer_keymaps(args.buf)
+                        if vim.bo[args.buf].buftype == "terminal" then
+                            start_refresh_timer(args.buf)
+                        else
+                            highlight_buffer(args.buf)
                         end
                     end
+                end,
+            })
+
+            vim.api.nvim_create_autocmd("BufDelete", {
+                group = group,
+                callback = function(args)
+                    stop_refresh_timer(args.buf)
                 end,
             })
 
             vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
                 group = group,
                 callback = function(args)
-                    local ft = vim.bo[args.buf].filetype
-                    for _, allowed_ft in ipairs(config.filetypes) do
-                        if ft == allowed_ft then
-                            highlight_buffer(args.buf)
-                            break
-                        end
+                    if is_log_buffer(args.buf) and vim.bo[args.buf].buftype ~= "terminal" then
+                        highlight_buffer(args.buf)
                     end
                 end,
             })

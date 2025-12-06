@@ -18,6 +18,17 @@ local kill_topaz = function()
     })
 end
 
+local spawn_runner = function()
+
+    vim.cmd("wa")
+    vim.cmd("botright split term://make")
+    vim.cmd("resize " .. math.floor(vim.o.lines / 4))
+    -- vim.cmd("startinsert")
+    vim.cmd("stopinsert")
+    vim.cmd("normal! G")
+
+end
+
 local close_terminals = function()
   for _, buf in ipairs(vim.api.nvim_list_bufs()) do
     if vim.api.nvim_buf_is_loaded(buf) then
@@ -57,10 +68,7 @@ end, {
 vim.keymap.set("n", "<leader>m", function()
     kill_topaz()
     close_terminals()
-    vim.cmd("wa")
-    vim.cmd("botright split term://make")
-    vim.cmd("resize " .. math.floor(vim.o.lines / 4))
-    vim.cmd("startinsert")
+    spawn_runner()
 end, {
     noremap = true,
     silent = true,
@@ -75,10 +83,7 @@ vim.keymap.set("t", "<leader>m", function()
     )
     kill_topaz()
     close_terminals()
-    vim.cmd("wa")
-    vim.cmd("botright split term://make")
-    vim.cmd("resize " .. math.floor(vim.o.lines / 4))
-    vim.cmd("startinsert")
+    spawn_runner()
 end, {
     noremap = true,
     silent = true,
@@ -89,10 +94,7 @@ end, {
 vim.keymap.set("n", "<leader>r", function()
     kill_topaz()
     close_terminals()
-    vim.cmd("wa")
-    vim.cmd("botright split term://make run")
-    vim.cmd("resize " .. math.floor(vim.o.lines / 4))
-    vim.cmd("startinsert")
+    spawn_runner()
 end, {
     noremap = true,
     silent = true,
@@ -108,10 +110,7 @@ vim.keymap.set("t", "<leader>r", function()
     )
     kill_topaz()
     close_terminals()
-    vim.cmd("wa")
-    vim.cmd("botright split term://make run")
-    vim.cmd("resize " .. math.floor(vim.o.lines / 4))
-    vim.cmd("startinsert")
+    spawn_runner()
 end, {
     noremap = true,
     silent = true,
