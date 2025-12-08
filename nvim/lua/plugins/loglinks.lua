@@ -163,6 +163,7 @@ return {
                 buf_state[bufnr] = nil
 
                 timer:start(config.poll_interval, config.poll_interval, vim.schedule_wrap(function()
+                    if vim.v.exiting ~= vim.NIL then return end
                     if timers[bufnr] ~= timer then return end
 
                     if not vim.api.nvim_buf_is_valid(bufnr) then
@@ -186,8 +187,10 @@ return {
                 if timer then
                     timers[bufnr] = nil
                     pcall(function()
-                        timer:stop()
-                        timer:close()
+                        if not timer:is_closing() then
+                            timer:stop()
+                            timer:close()
+                        end
                     end)
                 end
                 buf_state[bufnr] = nil
@@ -255,6 +258,15 @@ return {
                 group = group,
                 callback = function(args)
                     stop_refresh_timer(args.buf)
+                end,
+            })
+
+            vim.api.nvim_create_autocmd("VimLeavePre", {
+                group = group,
+                callback = function()
+                    for bufnr, _ in pairs(timers) do
+                        stop_refresh_timer(bufnr)
+                    end
                 end,
             })
 

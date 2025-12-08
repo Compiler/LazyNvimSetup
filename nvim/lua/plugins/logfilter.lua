@@ -1,3 +1,4 @@
+-- hahahahaha 2
 return {
     {
         "logfilter.nvim",
@@ -74,6 +75,7 @@ return {
                 timers[bufnr] = timer
 
                 timer:start(config.poll_interval, config.poll_interval, vim.schedule_wrap(function()
+                    if vim.v.exiting ~= vim.NIL then return end
                     if timers[bufnr] ~= timer then return end
 
                     if not vim.api.nvim_buf_is_valid(bufnr) then
@@ -107,8 +109,10 @@ return {
                 if timer then
                     timers[bufnr] = nil
                     pcall(function()
-                        timer:stop()
-                        timer:close()
+                        if not timer:is_closing() then
+                            timer:stop()
+                            timer:close()
+                        end
                     end)
                 end
             end
@@ -240,7 +244,7 @@ return {
                 end, { buffer = s.view_buf })
 
                 vim.keymap.set("n", "<CR>", goto_original_line, { buffer = s.view_buf })
-                vim.keymap.set("n", "gf", goto_original_line, { buffer = s.view_buf })
+                vim.keymap.set("n", "<leader>gd", goto_original_line, { buffer = s.view_buf })
 
                 vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
                     buffer = s.input_buf,
@@ -265,9 +269,12 @@ return {
                         group = leave_group,
                         callback = function()
                             if not s.filter_active then return end
+                            if vim.v.exiting ~= vim.NIL then return end
                             vim.defer_fn(function()
+                                if vim.v.exiting ~= vim.NIL then return end
                                 if not s.filter_active then return end
-                                local cur_buf = vim.api.nvim_get_current_buf()
+                                local ok, cur_buf = pcall(vim.api.nvim_get_current_buf)
+                                if not ok then return end
                                 if cur_buf ~= s.input_buf and cur_buf ~= s.view_buf then
                                     close_filter()
                                 end
@@ -330,6 +337,15 @@ return {
                 callback = function(args)
                     stop_cache_timer(args.buf)
                     state[args.buf] = nil
+                end,
+            })
+
+            vim.api.nvim_create_autocmd("VimLeavePre", {
+                group = group,
+                callback = function()
+                    for bufnr, _ in pairs(timers) do
+                        stop_cache_timer(bufnr)
+                    end
                 end,
             })
 
