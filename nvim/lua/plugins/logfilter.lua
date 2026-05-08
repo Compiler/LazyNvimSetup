@@ -349,7 +349,7 @@ return {
                 end,
             })
 
-            print("LogFilter loaded - <leader>fi to filter logs")
+            -- print("LogFilter loaded - <leader>fi to filter logs")
         end,
     },
 }

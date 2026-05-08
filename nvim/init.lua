@@ -1,4 +1,4 @@
-print("Luke setup running...")
+-- print("Luke setup running...")
 
 require("config.lazy")
 

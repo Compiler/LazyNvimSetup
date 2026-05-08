@@ -279,7 +279,7 @@ return {
                 end,
             })
 
-            print("LogLinks loaded - <leader>gd or <CR> to jump to file:line")
+            --print("LogLinks loaded - <leader>gd or <CR> to jump to file:line")
         end,
     },
 }

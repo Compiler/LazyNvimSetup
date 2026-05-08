@@ -8,7 +8,6 @@ return {
 	},
 
 	config = function()
-	    print("Telescope doing things...")
 	    local tsb = require('telescope.builtin')
 	    vim.keymap.set("n", "<space>ff", tsb.find_files)
 	    vim.keymap.set("n", "<space>en", function()

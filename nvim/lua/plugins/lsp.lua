@@ -7,11 +7,22 @@ return {
     "neovim/nvim-lspconfig",
     config = function()
         local group = vim.api.nvim_create_augroup("UserLspGd", { clear = true })
-	print("Looking for lsp at home.")
-	print(vim.fn.expand("$HOME"))
-	print(vim.fn.expand("$HOME") .. "\\qmlls.exe")
+	-- print("Looking for lsp at home.")
+	-- print(vim.fn.expand("$HOME"))
+	-- print(vim.fn.expand("$HOME") .. "\\qmlls.exe")
 
 	vim.api.nvim_create_autocmd("LspAttach", { group = group, callback = function(args)
+                vim.keymap.set("n", "<leader>t", vim.lsp.buf.hover, {
+                    buffer = args.buf,
+                    desc = "Show type under cursor",
+                })
+                vim.keymap.set("n", "<leader>ia", function()
+                    vim.lsp.buf.code_action({
+                        apply = true,
+                        context = { only = { "source.organizeIncludes" } },
+                    })
+                end, { buffer = args.buf, desc = "clangd: organize includes" })
+
           local client = vim.lsp.get_client_by_id(args.data.client_id)
             vim.keymap.set("n", "<space>gd", vim.lsp.buf.definition, {
               buffer = args.buf,
@@ -19,11 +30,11 @@ return {
             })
           if client and client.name == "clangd" then
 
-	    vim.keymap.set("n","<leader>fo", function()
-		vim.lsp.buf_request(0,"textDocument/switchSourceHeader",{uri=vim.uri_from_bufnr(0)},function(_,r)
-		if r then vim.cmd("e "..vim.uri_to_fname(r)) end
-	    end)
-	    end,{buffer=args.buf})
+                    vim.keymap.set("n","<leader>fo", function()
+                        vim.lsp.buf_request(0,"textDocument/switchSourceHeader",{uri=vim.uri_from_bufnr(0)},function(_,r)
+                            if r then vim.cmd("e "..vim.uri_to_fname(r)) end
+                        end)
+                    end,{buffer=args.buf})
 
           end
         end,
@@ -46,9 +57,19 @@ return {
             },
           },
         }
+            vim.lsp.config.clangd = {
+                cmd = {
+                    "clangd",
+                    "--header-insertion=iwyu",
+                    "--header-insertion-decorators",
+                    "--clang-tidy",
+                },
+                filetypes = { "c", "cpp", "objc", "objcpp" },
+            }
       vim.lsp.enable({
         "lua_ls",
-	"qmlls",
+	    "qmlls",
+        "clangd",
         "mesonlsp",
       })
     end,
@@ -68,6 +89,7 @@ return {
     opts = {
       ensure_installed = {
         "lua_ls",
+        "clangd",
         "mesonlsp",
       },
     },
